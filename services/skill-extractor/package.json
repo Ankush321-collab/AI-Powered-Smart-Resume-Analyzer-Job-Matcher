@@ -1,0 +1,22 @@
+{
+  "name": "@resume-analyser/skill-extractor",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@resume-analyser/db": "*",
+    "@resume-analyser/kafka": "*",
+    "@resume-analyser/types": "*",
+    "compromise": "^14.13.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}

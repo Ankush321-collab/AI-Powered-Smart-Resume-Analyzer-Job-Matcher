@@ -1,0 +1,53 @@
+﻿
+> @resume-analyser/embedder@0.1.0 dev
+> ts-node-dev --respawn --transpile-only src/index.ts
+
+node.exe : 
+'ts-node-dev' is not 
+recognized as an 
+internal or external 
+command,
+At C:\Program Files\n
+odejs\npm.ps1:29 
+char:3
++   & $NODE_EXE 
+$NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ('ts-nod   
+ e-dev' i...terna    
+l command,:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+operable program or 
+batch file.
+npm error Lifecycle 
+script `dev` failed 
+with error:
+npm error code 1
+npm error path C:\Use
+rs\hp\Desktop\Resume_
+Analyser\services\emb
+edder
+npm error workspace @
+resume-analyser/embed
+der@0.1.0
+npm error location C:
+\Users\hp\Desktop\Res
+ume_Analyser\services
+\embedder
+npm error command 
+failed
+npm error command C:\
+WINDOWS\system32\cmd.
+exe /d /s /c 
+ts-node-dev 
+--respawn 
+--transpile-only 
+src/index.ts

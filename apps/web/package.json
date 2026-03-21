@@ -11,14 +11,19 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
+    "@apollo/client": "^3.9.10",
+    "@repo/ui": "*",
+    "@supabase/supabase-js": "^2.39.7",
+    "framer-motion": "^11.1.5",
+    "graphql": "^16.8.1",
+    "lucide-react": "^0.475.0",
     "next": "16.2.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-dropzone": "^14.2.3",
+    "recharts": "^2.12.4"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",

@@ -1,0 +1,89 @@
+type Query {
+  me: User
+  getResumeScore(resumeId: ID!): MatchResult
+  getSkillGap(resumeId: ID!, jobId: ID!): SkillGapResult
+  matchJob(resumeId: ID!, jobId: ID!): MatchResult
+  listResumes: [Resume!]!
+  listJobs: [Job!]!
+  getResume(resumeId: ID!): Resume
+  getAnalyticsOverview: AnalyticsOverview
+}
+
+type Mutation {
+  signUp(email: String!, password: String!, name: String): AuthPayload
+  signIn(email: String!, password: String!): AuthPayload
+  uploadResume(fileUrl: String!, fileName: String!): Resume
+  createJob(title: String!, company: String, description: String!): Job
+  analyzeResume(resumeId: ID!, jobId: ID!): AnalysisStatus
+  deleteResume(resumeId: ID!): Boolean
+}
+
+type User {
+  id: ID!
+  email: String!
+  name: String
+  resumes: [Resume!]!
+  createdAt: String!
+}
+
+type Resume {
+  id: ID!
+  userId: String!
+  fileUrl: String!
+  fileName: String!
+  parsedText: String
+  feedback: String
+  status: String!
+  skills: [String!]!
+  matchResults: [MatchResult!]!
+  createdAt: String!
+}
+
+type Job {
+  id: ID!
+  title: String!
+  company: String
+  description: String!
+  skills: [String!]!
+  createdAt: String!
+}
+
+type MatchResult {
+  id: ID!
+  resumeId: String!
+  jobId: String!
+  score: Float!
+  matchPercentage: Float!
+  skillGap: [String!]!
+  confidence: Float!
+  createdAt: String!
+}
+
+type SkillGapResult {
+  present: [String!]!
+  missing: [String!]!
+  matchPercentage: Float!
+}
+
+type AnalysisStatus {
+  resumeId: String!
+  jobId: String
+  status: String!
+  message: String
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type AnalyticsOverview {
+  totalResumes: Int!
+  avgScore: Float!
+  topMissingSkills: [SkillCount!]!
+}
+
+type SkillCount {
+  skill: String!
+  count: Int!
+}

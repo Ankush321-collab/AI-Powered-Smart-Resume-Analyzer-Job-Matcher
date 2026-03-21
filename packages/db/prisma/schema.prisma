@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  resumes   Resume[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Resume {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileUrl      String
+  fileName     String
+  parsedText   String?       @db.Text
+  resumeVector Float[]
+  feedback     String?       @db.Text
+  skills       ResumeSkill[]
+  matchResults MatchResult[]
+  status       ResumeStatus  @default(UPLOADED)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum ResumeStatus {
+  UPLOADED
+  PARSING
+  PARSED
+  EMBEDDING
+  EMBEDDED
+  SKILL_EXTRACTED
+  COMPLETED
+  FAILED
+}
+
+model Job {
+  id           String      @id @default(cuid())
+  title        String
+  company      String?
+  description  String      @db.Text
+  jobVector    Float[]
+  skills       JobSkill[]
+  matchResults MatchResult[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Skill {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  category    String?
+  resumeSkills ResumeSkill[]
+  jobSkills    JobSkill[]
+}
+
+model ResumeSkill {
+  id       String @id @default(cuid())
+  resumeId String
+  skillId  String
+  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  skill    Skill  @relation(fields: [skillId], references: [id])
+
+  @@unique([resumeId, skillId])
+}
+
+model JobSkill {
+  id      String @id @default(cuid())
+  jobId   String
+  skillId String
+  job     Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill   Skill  @relation(fields: [skillId], references: [id])
+
+  @@unique([jobId, skillId])
+}
+
+model MatchResult {
+  id              String   @id @default(cuid())
+  resumeId        String
+  jobId           String
+  score           Float
+  matchPercentage Float
+  skillGap        String[] // Missing skills
+  confidence      Float    @default(0)
+  resume          Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([resumeId, jobId])
+}
