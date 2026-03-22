@@ -52,9 +52,9 @@ function ScoreRing({ value, size = 130 }: { value: number; size?: number }) {
 
 export default function DashboardPage({ params }: { params: Promise<{ resumeId: string }> }) {
   const { resumeId } = use(params);
-  const [pollingInterval, setPollingInterval] = useState(3000);
+  const [pollingInterval, setPollingInterval] = useState(12000);
 
-  const { data, loading, error, startPolling, stopPolling } = useQuery(GET_RESUME, {
+  const { data, loading, error, stopPolling } = useQuery(GET_RESUME, {
     variables: { resumeId },
     pollInterval: pollingInterval,
   });
@@ -64,13 +64,30 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
   const resume = data?.getResume;
   const topMatch = resume?.matchResults?.[0];
   const status = resume?.status;
+  const isFeedbackPending = status === "COMPLETED" && !resume?.feedback;
 
   useEffect(() => {
-    if (status === "COMPLETED" || status === "FAILED") {
+    if (status === "FAILED" || (status === "COMPLETED" && !!resume?.feedback)) {
       stopPolling();
       setPollingInterval(0);
+      return;
     }
-  }, [status, stopPolling]);
+
+    if (status === "COMPLETED" && !resume?.feedback) {
+      // Keep polling after analysis completes until feedback text is persisted.
+      setPollingInterval(5000);
+    }
+  }, [status, resume?.feedback, stopPolling]);
+
+  useEffect(() => {
+    // Safety stop to avoid endless polling loops if a service is stalled.
+    const timer = setTimeout(() => {
+      setPollingInterval(0);
+      stopPolling();
+    }, 12 * 60 * 1000);
+
+    return () => clearTimeout(timer);
+  }, [stopPolling]);
 
   const skillGap = topMatch?.skillGap ?? [];
   const presentSkills = resume?.skills ?? [];
@@ -305,8 +322,13 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
         {/* No feedback yet */}
         {!resume?.feedback && status === "COMPLETED" && (
           <div className="glass-card text-center" style={{ padding: "40px" }}>
-            <BookOpen size={40} color="var(--text-muted)" style={{ margin: "0 auto 12px" }} />
-            <p style={{ color: "var(--text-secondary)" }}>AI feedback is being generated...</p>
+            <div
+              className="spinner"
+              style={{ width: 40, height: 40, borderWidth: 3, margin: "0 auto 12px" }}
+            />
+            <p style={{ color: "var(--text-secondary)" }}>
+              AI feedback is being generated{isFeedbackPending ? "..." : "."}
+            </p>
           </div>
         )}
 

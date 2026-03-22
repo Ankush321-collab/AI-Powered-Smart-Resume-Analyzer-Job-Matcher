@@ -9,6 +9,39 @@ import type { SkillExtractedEvent, MatchCompletedEvent, NebiusEmbeddingResponse 
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+const HTTP_TIMEOUT_MS = Number(process.env.HTTP_TIMEOUT_MS || 20000);
+const CLICKHOUSE_TIMEOUT_MS = Number(process.env.CLICKHOUSE_TIMEOUT_MS || 3000);
+const CLICKHOUSE_ENABLED = process.env.CLICKHOUSE_ENABLED !== "false";
+
+const SKILL_KEYWORDS = [
+  "javascript", "typescript", "python", "java", "go", "rust", "c++", "c#", "ruby", "php",
+  "swift", "kotlin", "scala", "r", "matlab",
+  "react", "next.js", "vue", "angular", "svelte", "html", "css", "tailwind",
+  "redux", "graphql", "apollo",
+  "node.js", "express", "fastapi", "django", "flask", "spring boot", "nestjs",
+  "rest api", "grpc", "websocket",
+  "postgresql", "mysql", "mongodb", "redis", "elasticsearch", "clickhouse",
+  "cassandra", "dynamodb", "sqlite",
+  "aws", "gcp", "azure", "docker", "kubernetes", "terraform", "ansible",
+  "ci/cd", "github actions", "jenkins",
+  "machine learning", "deep learning", "nlp", "pytorch", "tensorflow", "scikit-learn",
+  "llm", "transformers", "langchain",
+  "kafka", "rabbitmq", "microservices", "system design", "agile", "scrum",
+  "git", "linux", "bash", "sql", "nosql",
+];
+
+function normalizeSkill(s: string): string {
+  return s.trim().toLowerCase();
+}
+
+function extractSkillsFromText(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found = new Set<string>();
+  for (const skill of SKILL_KEYWORDS) {
+    if (lower.includes(skill)) found.add(skill);
+  }
+  return Array.from(found);
+}
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
@@ -34,6 +67,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
     },
     {
       headers: { Authorization: `Bearer ${process.env.NEBIUS_API_KEY}`, "Content-Type": "application/json" },
+      timeout: HTTP_TIMEOUT_MS,
     }
   );
 
@@ -43,6 +77,8 @@ async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 async function writeToClickHouse(payload: MatchCompletedEvent): Promise<void> {
+  if (!CLICKHOUSE_ENABLED || !process.env.CLICKHOUSE_HOST) return;
+
   try {
     const body = `${payload.resumeId}\t${payload.jobId}\t${payload.userId}\t${payload.score}\t${payload.matchPercentage}\t${payload.confidence}\t${new Date().toISOString().replace("T", " ").split(".")[0]}\n`;
     
@@ -57,7 +93,7 @@ async function writeToClickHouse(payload: MatchCompletedEvent): Promise<void> {
     await axios.post(
       `${process.env.CLICKHOUSE_HOST}/?query=INSERT+INTO+resume_analytics.resume_scores+(id,resume_id,job_id,user_id,score,match_pct,confidence,created_at)+FORMAT+TabSeparated`,
       `${Date.now()}\t${body}`,
-      { headers }
+      { headers, timeout: CLICKHOUSE_TIMEOUT_MS }
     );
   } catch (err) {
     console.warn("[Matcher] ClickHouse write failed (non-fatal):", (err as Error).message);
@@ -69,17 +105,23 @@ async function matchResumes(payload: SkillExtractedEvent): Promise<void> {
     return;
   }
 
-  const { resumeId, userId, skills: resumeSkills } = payload;
+  const { resumeId, userId, skills: resumeSkills, jobId: targetJobId } = payload;
   console.log(`[Matcher] Running match for resume ${resumeId}`);
 
   try {
     const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
     if (!resume?.parsedText) throw new Error("No parsedText for resume");
 
-    // Get all jobs to match against
-    const jobs = await prisma.job.findMany({
-      include: { skills: { include: { skill: true } } },
-    });
+    const maxJobs = Number(process.env.MATCHER_MAX_JOBS || "0");
+    const jobs = targetJobId
+      ? await prisma.job.findMany({
+          where: { id: targetJobId },
+          include: { skills: { include: { skill: true } } },
+        })
+      : await prisma.job.findMany({
+          include: { skills: { include: { skill: true } } },
+          ...(Number.isFinite(maxJobs) && maxJobs > 0 ? { take: maxJobs } : {}),
+        });
 
     if (jobs.length === 0) {
       console.log(`[Matcher] No jobs found, skipping match for ${resumeId}`);
@@ -92,16 +134,27 @@ async function matchResumes(payload: SkillExtractedEvent): Promise<void> {
       : await generateEmbedding(resume.parsedText);
 
     for (const job of jobs) {
-      const jobVector = job.jobVector.length > 0
-        ? job.jobVector
-        : await generateEmbedding(job.description);
+      let jobVector = job.jobVector;
+      if (!jobVector || jobVector.length === 0) {
+        jobVector = await generateEmbedding(job.description);
+        // Persist once so future resume matches do not regenerate this embedding.
+        await prisma.job.update({ where: { id: job.id }, data: { jobVector } });
+      }
 
       const similarity = cosineSimilarity(resumeVector, jobVector);
       const score = Math.round(similarity * 100 * 100) / 100;
       const matchPercentage = Math.min(score, 100);
 
-      const jobSkillNames = job.skills.map((js) => js.skill.name);
-      const skillGap = jobSkillNames.filter((s) => !resumeSkills.includes(s));
+      const jobSkillNames = job.skills.length > 0
+        ? job.skills.map((js) => js.skill.name)
+        : extractSkillsFromText(job.description);
+
+      const resumeSkillSet = new Set(resumeSkills.map(normalizeSkill));
+      const skillGap = jobSkillNames
+        .map(normalizeSkill)
+        .filter((s, idx, arr) => arr.indexOf(s) === idx)
+        .filter((s) => !resumeSkillSet.has(s));
+
       const confidence = jobSkillNames.length > 0
         ? 1 - skillGap.length / jobSkillNames.length
         : similarity;
@@ -119,7 +172,8 @@ async function matchResumes(payload: SkillExtractedEvent): Promise<void> {
       const event: MatchCompletedEvent = {
         resumeId, jobId: job.id, userId, score, matchPercentage, skillGap, confidence,
       };
-      await writeToClickHouse(event);
+      // Do not block core matching pipeline on analytics sink failures.
+      void writeToClickHouse(event);
       await publishEvent(TOPICS.MATCH_COMPLETED, event as unknown as Record<string, unknown>);
     }
 

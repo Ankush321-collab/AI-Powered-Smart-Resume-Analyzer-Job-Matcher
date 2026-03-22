@@ -25,9 +25,11 @@ async function main() {
   );
 
   // Rate limiting
+  const isDev = process.env.NODE_ENV !== "production";
   const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
+    // Local dev polls frequently from dashboard; keep production strict by default.
+    max: Number(process.env.RATE_LIMIT_MAX || (isDev ? 5000 : 100)),
     standardHeaders: true,
     legacyHeaders: false,
   });

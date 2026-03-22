@@ -10,6 +10,28 @@ import type { MatchCompletedEvent, NebiusChatResponse } from "@resume-analyser/t
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+const HTTP_TIMEOUT_MS = Number(process.env.HTTP_TIMEOUT_MS || 30000);
+
+function buildFallbackFeedback(skillGap: string[]): string {
+  const topGaps = skillGap.slice(0, 8);
+  const gapLine = topGaps.length > 0 ? topGaps.join(", ") : "No major skill gaps detected.";
+
+  return [
+    "Quick Resume Feedback",
+    "",
+    "1) Improve bullet impact:",
+    "- Start bullets with strong action verbs and add measurable outcomes (%, $, time saved).",
+    "- Keep each bullet focused on one achievement with clear context and result.",
+    "",
+    "2) Keywords to target:",
+    `- ${gapLine}`,
+    "",
+    "3) Structure tips:",
+    "- Keep summary + core skills near top.",
+    "- Group projects/experience by relevance to the target role.",
+    "- Keep formatting ATS-safe (simple headings, no complex tables).",
+  ].join("\n");
+}
 
 async function generateFeedback(
   parsedText: string,
@@ -43,14 +65,15 @@ Provide targeted, personalized feedback to improve this resume for the job.`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      max_tokens: 1000,
-      temperature: 0.7,
+      max_tokens: 550,
+      temperature: 0.3,
     },
     {
       headers: {
         Authorization: `Bearer ${process.env.NEBIUS_API_KEY}`,
         "Content-Type": "application/json",
       },
+      timeout: HTTP_TIMEOUT_MS,
     }
   );
 
@@ -61,11 +84,19 @@ async function processFeedback(payload: MatchCompletedEvent): Promise<void> {
   const { resumeId, jobId, skillGap } = payload;
   console.log(`[Feedback] Generating AI feedback for resume ${resumeId}`);
 
-  // Check cache
+  // Check cache first. We keep both per-resume and per-resume-job keys for compatibility.
+  const resumeCacheKey = `feedback:${resumeId}`;
   const cacheKey = `feedback:${resumeId}:${jobId}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) {
+  const cached = (await redis.get(resumeCacheKey)) || (await redis.get(cacheKey));
+  if (cached && cached.trim()) {
     console.log(`[Feedback] Using cached feedback for ${resumeId}`);
+    return;
+  }
+
+  const lockKey = `feedback:lock:${resumeId}`;
+  const lockAcquired = await redis.set(lockKey, "1", "EX", 120, "NX");
+  if (!lockAcquired) {
+    console.log(`[Feedback] Another worker is generating feedback for ${resumeId}, skipping duplicate run`);
     return;
   }
 
@@ -75,11 +106,24 @@ async function processFeedback(payload: MatchCompletedEvent): Promise<void> {
       prisma.job.findUnique({ where: { id: jobId } }),
     ]);
 
+    if (resume?.feedback && resume.feedback.trim()) {
+      await redis.setex(resumeCacheKey, 43200, resume.feedback);
+      await redis.setex(cacheKey, 43200, resume.feedback);
+      console.log(`[Feedback] Existing feedback already present for ${resumeId}, skipping regeneration`);
+      return;
+    }
+
     if (!resume?.parsedText || !job?.description) {
       throw new Error("Missing resume text or job description");
     }
 
-    const feedback = await generateFeedback(resume.parsedText, job.description, skillGap);
+    let feedback = "";
+    try {
+      feedback = await generateFeedback(resume.parsedText, job.description, skillGap);
+    } catch (llmErr) {
+      console.warn(`[Feedback] LLM generation failed, using fallback for ${resumeId}:`, (llmErr as Error).message);
+      feedback = buildFallbackFeedback(skillGap);
+    }
 
     await prisma.resume.update({
       where: { id: resumeId },
@@ -87,10 +131,13 @@ async function processFeedback(payload: MatchCompletedEvent): Promise<void> {
     });
 
     // Cache for 12 hours
+    await redis.setex(resumeCacheKey, 43200, feedback);
     await redis.setex(cacheKey, 43200, feedback);
     console.log(`[Feedback] ✅ AI feedback generated and saved for resume ${resumeId}`);
   } catch (err) {
     console.error(`[Feedback] ❌ Error generating feedback:`, err);
+  } finally {
+    await redis.del(lockKey);
   }
 }
 

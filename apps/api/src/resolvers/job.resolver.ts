@@ -1,6 +1,32 @@
 import { prisma } from "@resume-analyser/db";
 import { GraphQLContext } from "./index";
 
+const SKILL_KEYWORDS = [
+  "javascript", "typescript", "python", "java", "go", "rust", "c++", "c#", "ruby", "php",
+  "swift", "kotlin", "scala", "r", "matlab",
+  "react", "next.js", "vue", "angular", "svelte", "html", "css", "tailwind",
+  "redux", "graphql", "apollo",
+  "node.js", "express", "fastapi", "django", "flask", "spring boot", "nestjs",
+  "rest api", "grpc", "websocket",
+  "postgresql", "mysql", "mongodb", "redis", "elasticsearch", "clickhouse",
+  "cassandra", "dynamodb", "sqlite",
+  "aws", "gcp", "azure", "docker", "kubernetes", "terraform", "ansible",
+  "ci/cd", "github actions", "jenkins",
+  "machine learning", "deep learning", "nlp", "pytorch", "tensorflow", "scikit-learn",
+  "llm", "transformers", "langchain",
+  "kafka", "rabbitmq", "microservices", "system design", "agile", "scrum",
+  "git", "linux", "bash", "sql", "nosql",
+];
+
+function extractSkillsFromText(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found = new Set<string>();
+  for (const skill of SKILL_KEYWORDS) {
+    if (lower.includes(skill)) found.add(skill);
+  }
+  return Array.from(found);
+}
+
 export const jobResolvers = {
   Query: {
     listJobs: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
@@ -83,14 +109,35 @@ export const jobResolvers = {
       ctx: GraphQLContext
     ) => {
       if (!ctx.user) throw new Error("Unauthorized");
-      const job = await prisma.job.create({
-        data: { title, company, description },
+
+      const extractedSkills = extractSkillsFromText(description);
+      const job = await prisma.job.create({ data: { title, company, description } });
+
+      for (const name of extractedSkills) {
+        const skill = await prisma.skill.upsert({
+          where: { name },
+          create: { name },
+          update: {},
+        });
+
+        await prisma.jobSkill.upsert({
+          where: { jobId_skillId: { jobId: job.id, skillId: skill.id } },
+          create: { jobId: job.id, skillId: skill.id },
+          update: {},
+        });
+      }
+
+      const hydratedJob = await prisma.job.findUnique({
+        where: { id: job.id },
         include: { skills: { include: { skill: true } } },
       });
+
+      if (!hydratedJob) throw new Error("Failed to create job");
+
       return {
-        ...job,
-        skills: job.skills.map((js) => js.skill.name),
-        createdAt: job.createdAt.toISOString(),
+        ...hydratedJob,
+        skills: hydratedJob.skills.map((js) => js.skill.name),
+        createdAt: hydratedJob.createdAt.toISOString(),
       };
     },
   },

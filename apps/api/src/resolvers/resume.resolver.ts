@@ -53,14 +53,6 @@ export const resumeResolvers = {
         },
       });
 
-      // Emit Kafka event
-      await publishEvent(TOPICS.RESUME_UPLOADED, {
-        resumeId: resume.id,
-        userId: ctx.user.id,
-        fileUrl,
-        fileName,
-      });
-
       return {
         ...resume,
         skills: [],

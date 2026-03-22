@@ -8,8 +8,10 @@ import pdfParse from "pdf-parse";
 
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
+const HTTP_TIMEOUT_MS = Number(process.env.HTTP_TIMEOUT_MS || 15000);
+
 async function parseResume(payload: ResumeUploadedEvent): Promise<void> {
-  const { resumeId, userId, fileUrl, fileName } = payload;
+  const { resumeId, userId, fileUrl, fileName, jobId } = payload;
   console.log(`[Parser] Processing resume ${resumeId}`);
 
   try {
@@ -23,21 +25,22 @@ async function parseResume(payload: ResumeUploadedEvent): Promise<void> {
     if (typeof fileUrl === "string" && fileUrl.startsWith("http")) {
       try {
         // Download the file and parse
-        const response = await axios.get(fileUrl, { responseType: "arraybuffer" });
+        const response = await axios.get(fileUrl, {
+          responseType: "arraybuffer",
+          timeout: HTTP_TIMEOUT_MS,
+        });
         const buffer = Buffer.from(response.data);
         const data = await pdfParse(buffer);
         parsedText = data.text;
       } catch (downloadErr) {
-        // Keep the pipeline moving even if remote fetch fails (private/expired URL, etc.)
-        console.warn(`[Parser] Remote PDF fetch/parse failed for ${resumeId}, using fallback text:`, (downloadErr as Error).message);
-        parsedText = `[Fallback] Parsed text for ${fileName}: Experienced software engineer skilled in React, Node.js, TypeScript, Python, AWS, Docker, Kubernetes, PostgreSQL, Redis, GraphQL.`;
+        throw new Error(`Remote PDF fetch/parse failed: ${(downloadErr as Error).message}`);
       }
     } else {
-      parsedText = `[Mock] Parsed text for ${fileName}: Experienced software engineer skilled in React, Node.js, TypeScript, Python, AWS, Docker, Kubernetes, PostgreSQL, Redis, GraphQL.`;
+      throw new Error("Unsupported file URL format. Expected an http(s) URL");
     }
 
     if (!parsedText || !parsedText.trim()) {
-      parsedText = `[Fallback] Resume text unavailable for ${fileName}.`;
+      throw new Error("Parsed text is empty");
     }
 
     await prisma.resume.update({
@@ -45,28 +48,12 @@ async function parseResume(payload: ResumeUploadedEvent): Promise<void> {
       data: { parsedText, status: "PARSED" },
     });
 
-    const event: ResumeParsedEvent = { resumeId, userId, parsedText };
+    const event: ResumeParsedEvent = { resumeId, userId, parsedText, jobId };
     await publishEvent(TOPICS.RESUME_PARSED, event as unknown as Record<string, unknown>);
     console.log(`[Parser] ✅ Resume ${resumeId} parsed successfully`);
   } catch (err) {
     console.error(`[Parser] ❌ Error parsing ${resumeId}:`, err);
-
-    // Last-resort fallback: keep the pipeline moving instead of immediate failure.
-    const fallbackText = `[Fallback] Parsed text for ${fileName}: Experienced software engineer skilled in React, Node.js, TypeScript, Python, AWS, Docker, Kubernetes, PostgreSQL, Redis, GraphQL.`;
-
-    try {
-      await prisma.resume.update({
-        where: { id: resumeId },
-        data: { parsedText: fallbackText, status: "PARSED" },
-      });
-
-      const event: ResumeParsedEvent = { resumeId, userId, parsedText: fallbackText };
-      await publishEvent(TOPICS.RESUME_PARSED, event as unknown as Record<string, unknown>);
-      console.warn(`[Parser] Recovered ${resumeId} with fallback text`);
-    } catch (recoveryErr) {
-      console.error(`[Parser] ❌ Recovery failed for ${resumeId}:`, recoveryErr);
-      await prisma.resume.update({ where: { id: resumeId }, data: { status: "FAILED" } });
-    }
+    await prisma.resume.update({ where: { id: resumeId }, data: { status: "FAILED" } });
   }
 }
 

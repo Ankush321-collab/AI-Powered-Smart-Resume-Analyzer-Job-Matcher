@@ -68,13 +68,24 @@ export default function UploadPage() {
       let fileUrl = "";
       
       if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        const bucketName = process.env.NEXT_PUBLIC_SUPABASE_BUCKET_NAME || "resumes";
         const fileName = `${Date.now()}-${file.name}`;
         const { data, error: uploadError } = await supabase.storage
-          .from(process.env.NEXT_PUBLIC_SUPABASE_BUCKET_NAME || "resumes")
+          .from(bucketName)
           .upload(fileName, file);
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("resumes").getPublicUrl(data.path);
-        fileUrl = urlData.publicUrl;
+
+        // Prefer a signed URL so parser can fetch from private buckets too.
+        const { data: signedData, error: signedErr } = await supabase.storage
+          .from(bucketName)
+          .createSignedUrl(data.path, 60 * 60);
+
+        if (signedErr || !signedData?.signedUrl) {
+          const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+          fileUrl = urlData.publicUrl;
+        } else {
+          fileUrl = signedData.signedUrl;
+        }
       } else {
         // Mock URL for dev without Supabase
         fileUrl = `mock://resume/${file.name}`;

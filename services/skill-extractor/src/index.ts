@@ -61,7 +61,7 @@ async function extractAndStoreSkills(payload: EmbeddingsGeneratedEvent): Promise
     return;
   }
 
-  const { resumeId, userId } = payload;
+  const { resumeId, userId, jobId } = payload;
   console.log(`[SkillExtractor] Extracting skills for resume ${resumeId}`);
 
   try {
@@ -85,7 +85,7 @@ async function extractAndStoreSkills(payload: EmbeddingsGeneratedEvent): Promise
 
     await prisma.resume.update({ where: { id: resumeId }, data: { status: "SKILL_EXTRACTED" } });
 
-    const event: SkillExtractedEvent = { resumeId, userId, skills: skillNames };
+    const event: SkillExtractedEvent = { resumeId, userId, skills: skillNames, jobId };
     await publishEvent(TOPICS.SKILL_EXTRACTED, event as unknown as Record<string, unknown>);
     console.log(`[SkillExtractor] ✅ Found ${skillNames.length} skills for ${resumeId}`);
   } catch (err) {

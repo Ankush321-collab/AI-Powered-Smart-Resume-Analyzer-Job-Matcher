@@ -4,18 +4,21 @@ export interface ResumeUploadedEvent {
   userId: string;
   fileUrl: string;
   fileName: string;
+  jobId?: string;
 }
 
 export interface ResumeParsedEvent {
   resumeId: string;
   userId: string;
   parsedText: string;
+  jobId?: string;
 }
 
 export interface EmbeddingsGeneratedEvent {
   resumeId: string;
   userId: string;
   resumeVector: number[];
+  jobId?: string;
 }
 
 export interface SkillExtractedEvent {

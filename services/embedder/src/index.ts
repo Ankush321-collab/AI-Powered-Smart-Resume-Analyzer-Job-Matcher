@@ -13,6 +13,7 @@ import type {
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+const HTTP_TIMEOUT_MS = Number(process.env.HTTP_TIMEOUT_MS || 20000);
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const cacheKey = `embed:${Buffer.from(text.slice(0, 200)).toString("base64")}`;
@@ -30,6 +31,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
         Authorization: `Bearer ${process.env.NEBIUS_API_KEY}`,
         "Content-Type": "application/json",
       },
+      timeout: HTTP_TIMEOUT_MS,
     }
   );
 
@@ -43,7 +45,7 @@ async function embedResume(payload: ResumeParsedEvent): Promise<void> {
     return;
   }
 
-  const { resumeId, userId, parsedText } = payload;
+  const { resumeId, userId, parsedText, jobId } = payload;
   console.log(`[Embedder] Generating embedding for resume ${resumeId}`);
 
   try {
@@ -56,7 +58,7 @@ async function embedResume(payload: ResumeParsedEvent): Promise<void> {
       data: { resumeVector, status: "EMBEDDED" },
     });
 
-    const event: EmbeddingsGeneratedEvent = { resumeId, userId, resumeVector };
+    const event: EmbeddingsGeneratedEvent = { resumeId, userId, resumeVector, jobId };
     await publishEvent(TOPICS.EMBEDDINGS_GENERATED, event as unknown as Record<string, unknown>);
     console.log(`[Embedder] ✅ Embedding for resume ${resumeId} stored`);
   } catch (err) {
