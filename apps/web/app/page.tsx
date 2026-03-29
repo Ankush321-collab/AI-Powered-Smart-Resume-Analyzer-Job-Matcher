@@ -1,32 +1,36 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Brain, Zap, BarChart3, FileText, ArrowRight, CheckCircle, Star } from "lucide-react";
+import { Brain, Zap, BarChart3, FileText, ArrowRight, CheckCircle, Star, Sparkles, Award, Globe, Shield, Target } from "lucide-react";
+import { motion } from "framer-motion";
 
 const FEATURES = [
   {
     icon: Brain,
     title: "AI-Powered Analysis",
     desc: "Nebius AI embeddings provide deep semantic understanding of your resume beyond simple keyword matching.",
-    color: "#8b5cf6",
+    color: "from-purple-500/20 to-purple-500/0",
+    iconColor: "text-purple-400",
   },
   {
     icon: Zap,
     title: "Instant Matching",
     desc: "Cosine similarity matching between your resume and job descriptions gives precise match percentages in seconds.",
-    color: "#3b82f6",
+    color: "from-blue-500/20 to-blue-500/0",
+    iconColor: "text-blue-400",
   },
   {
     icon: BarChart3,
     title: "Skill Gap Insights",
     desc: "Know exactly which skills you're missing for your target role with actionable recommendations.",
-    color: "#14b8a6",
+    color: "from-teal-500/20 to-teal-500/0",
+    iconColor: "text-teal-400",
   },
   {
     icon: FileText,
     title: "ATS Optimization",
     desc: "LLM-generated feedback ensures your resume passes Applicant Tracking Systems with flying colors.",
-    color: "#ec4899",
+    color: "from-pink-500/20 to-pink-500/0",
+    iconColor: "text-pink-400",
   },
 ];
 
@@ -37,172 +41,228 @@ const STATS = [
   { value: "<5s", label: "Analysis Time" },
 ];
 
-export default function LandingPage() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 }
+  }
+};
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
+
+export default function LandingPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }}>
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Navbar */}
-      <nav className="navbar">
-        <div className="container flex items-center justify-between" style={{ padding: "18px 24px" }}>
-          <div className="flex items-center gap-2">
-            <div style={{ width: 36, height: 36, background: "var(--gradient-primary)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Brain size={20} color="#fff" />
-            </div>
-            <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em" }}>
-              Resume<span className="text-gradient">AI</span>
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-xl">
+        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-premium-gradient rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse-glow">
+                <Brain size={20} className="text-white" />
+              </div>
+            <span className="font-extrabold text-xl tracking-tight uppercase">
+              Resume<span className="premium-gradient-text tracking-widest">AI</span>
             </span>
           </div>
+          <div className="hidden md:flex items-center gap-8 text-sm font-bold uppercase tracking-widest text-muted">
+            <Link href="#features" className="hover:text-white transition-colors">Features</Link>
+            <Link href="#pipeline" className="hover:text-white transition-colors">Pipeline</Link>
+          </div>
           <div className="flex items-center gap-4">
-            <Link href="/auth" className="btn-secondary" style={{ padding: "8px 20px" }}>Sign In</Link>
-            <Link href="/upload" className="btn-primary" style={{ padding: "8px 20px" }}>
-              Get Started <ArrowRight size={16} />
+            <Link href="/auth" className="btn-premium-outline !py-2 !px-5 !text-xs">Sign In</Link>
+            <Link href="/upload" className="btn-premium !py-2 !px-5 !text-xs group">
+              Get Started <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section style={{ padding: "80px 0 60px", position: "relative", overflow: "hidden" }}>
-        {/* Background glow */}
-        <div style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 800, height: 500,
-          background: "radial-gradient(ellipse at center, rgba(139,92,246,0.12) 0%, transparent 70%)",
-          pointerEvents: "none"
-        }} />
+      {/* Hero Section */}
+      <section className="relative pt-40 pb-20 overflow-hidden">
+        {/* Animated Orbs */}
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -z-10 animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[100px] -z-10 animate-float" />
 
-        <div className="container text-center" style={{ position: "relative" }}>
-          <div style={{ marginBottom: 24 }}>
-            <span className="badge badge-purple animate-fade-up">
-              <Star size={12} /> AI-Powered · Nebius AI Technology
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="container mx-auto px-6 text-center"
+        >
+          <motion.div variants={itemVariants} className="mb-8 inline-block">
+            <span className="badge-premium !bg-primary/20 !text-white border-primary/30 py-2 px-4 shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+              <Sparkles size={14} className="text-primary-light" /> AI-Powered Next-Gen Matcher
             </span>
-          </div>
+          </motion.div>
 
-          <h1 className="animate-fade-up" style={{ marginBottom: 24, animationDelay: "0.1s", maxWidth: 800, margin: "0 auto 24px" }}>
-            Get Your Resume{" "}
-            <span className="text-gradient">AI-Analyzed</span>{" "}
-            in Seconds
-          </h1>
+          <motion.h1 
+            variants={itemVariants}
+            className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] tracking-tight max-w-4xl mx-auto"
+          >
+            Smarter Resumes for <br />
+            <span className="premium-gradient-text">Elite Opportunities</span>
+          </motion.h1>
 
-          <p className="animate-fade-up" style={{
-            fontSize: 18, color: "var(--text-secondary)", maxWidth: 600,
-            margin: "0 auto 40px", lineHeight: 1.7, animationDelay: "0.2s"
-          }}>
-            Upload your resume, paste a job description, and get instant AI feedback —
-            match score, skill gaps, and ATS optimization tips powered by state-of-the-art embeddings.
-          </p>
+          <motion.p 
+            variants={itemVariants}
+            className="text-lg md:text-xl text-muted max-w-2xl mx-auto mb-12 leading-relaxed"
+          >
+            Leverage state-of-the-art neural embeddings and Nebius LLaMA 3.1 to decode resume DNA and match you with 10k+ industry job profiles.
+          </motion.p>
 
-          <div className="flex items-center justify-center gap-4 animate-fade-up" style={{ animationDelay: "0.3s", flexWrap: "wrap" }}>
-            <Link href="/upload" className="btn-primary" style={{ fontSize: 16, padding: "14px 32px" }}>
-              Analyze My Resume <ArrowRight size={18} />
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <Link href="/upload" className="btn-premium !py-4 !px-10 text-lg group">
+              Analyze My Resume <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="#features" className="btn-secondary" style={{ fontSize: 16, padding: "14px 32px" }}>
-              See How It Works
+            <Link href="#features" className="btn-premium-outline !py-4 !px-10 text-lg">
+              Explore Features
             </Link>
-          </div>
+          </motion.div>
 
-          {/* Stats */}
-          <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: 24, marginTop: 80, maxWidth: 700, margin: "80px auto 0" }}>
+          {/* Stats Grid */}
+          <motion.div 
+            variants={itemVariants}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-24 max-w-4xl mx-auto"
+          >
             {STATS.map((stat) => (
-              <div key={stat.label} className="glass-card" style={{ padding: "20px 16px", textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 800, background: "var(--gradient-primary)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <div key={stat.label} className="glass-card p-8 border-white/5 hover:border-primary/20 hover:bg-white/[0.03] transition-all group">
+                <div className="text-3xl font-black premium-gradient-text mb-2 group-hover:scale-110 transition-transform">
                   {stat.value}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{stat.label}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted">{stat.label}</div>
               </div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Features */}
-      <section id="features" style={{ padding: "80px 0" }}>
-        <div className="container">
-          <div className="text-center" style={{ marginBottom: 60 }}>
-            <h2>Everything You Need to <span className="text-gradient">Land the Job</span></h2>
-            <p style={{ color: "var(--text-secondary)", marginTop: 12, fontSize: 16 }}>
-              Powered by a full AI pipeline — from parsing to embedding to LLM feedback
+      {/* Features Section */}
+      <section id="features" className="py-32 relative">
+        <div className="container mx-auto px-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl font-extrabold mb-4 uppercase tracking-tight">
+              Built for <span className="premium-gradient-text">High-Efficiency</span> Teams
+            </h2>
+            <p className="text-muted max-w-lg mx-auto font-medium">
+              We've integrated a full-stack AI pipeline into one seamless experience.
             </p>
-          </div>
-          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
-            {FEATURES.map((f) => (
-              <div key={f.title} className="glass-card">
-                <div style={{
-                  width: 52, height: 52, borderRadius: 14,
-                  background: `${f.color}20`, border: `1px solid ${f.color}40`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  marginBottom: 20
-                }}>
-                  <f.icon size={24} color={f.color} />
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {FEATURES.map((f, i) => (
+              <motion.div 
+                key={f.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card p-8 border-white/5 hover:border-primary/20 group relative"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-b ${f.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 border border-white/10 ${f.iconColor}`}>
+                  <f.icon size={24} />
                 </div>
-                <h3 style={{ marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
-              </div>
+                <h3 className="text-xl font-bold mb-4 relative z-10">{f.title}</h3>
+                <p className="text-muted text-sm leading-relaxed relative z-10 font-medium">{f.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section style={{ padding: "80px 0", borderTop: "1px solid var(--border)" }}>
-        <div className="container">
-          <div className="text-center" style={{ marginBottom: 60 }}>
-            <h2>Built on a <span className="text-gradient">Robust Pipeline</span></h2>
+      {/* Pipeline Visualization */}
+      <section id="pipeline" className="py-32 bg-white/[0.02] border-y border-white/5 overflow-hidden">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-black uppercase tracking-widest mb-2">Neural Pipeline</h2>
+            <div className="h-1 w-20 bg-premium-gradient mx-auto rounded-full" />
           </div>
-          <div className="flex items-center" style={{ gap: 16, overflowX: "auto", paddingBottom: 8 }}>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
             {[
-              { step: "1", label: "Upload PDF", desc: "Resume stored in Supabase" },
-              { step: "→", label: "", desc: "" },
-              { step: "2", label: "Parse Text", desc: "pdf-parse extracts content" },
-              { step: "→", label: "", desc: "" },
-              { step: "3", label: "Embed", desc: "Nebius BAAI vectors" },
-              { step: "→", label: "", desc: "" },
-              { step: "4", label: "Match", desc: "Cosine similarity" },
-              { step: "→", label: "", desc: "" },
-              { step: "5", label: "Feedback", desc: "LLaMA 3.1 70B tips" },
-            ].map((item, i) =>
-              item.label ? (
-                <div key={i} className="glass-card" style={{ padding: "20px 24px", minWidth: 150, flex: 1, textAlign: "center" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--gradient-primary)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontWeight: 700, fontSize: 14 }}>
-                    {item.step}
-                  </div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{item.label}</div>
-                  <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>{item.desc}</div>
+              { icon: FileText, title: "Ingestion", desc: "Supabase Secure Store" },
+              { icon: Globe, title: "Parsing", desc: "PDF content decomposition" },
+              { icon: Brain, title: "Embedding", desc: "Nebius Neural Vectors" },
+              { icon: Target, title: "Alignment", desc: "Cosine Multi-matching" },
+              { icon: Shield, title: "Feedback", desc: "LLM Strategic Insights" },
+            ].map((step, i) => (
+              <motion.div 
+                key={step.title}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="relative flex flex-col items-center group"
+              >
+                <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center border border-white/10 shadow-xl group-hover:border-primary/50 transition-colors z-10 bg-background">
+                  <step.icon size={28} className="text-primary-light" />
                 </div>
-              ) : (
-                <div key={i} style={{ color: "var(--text-muted)", fontSize: 20, flexShrink: 0 }}>→</div>
-              )
-            )}
+                <div className="mt-6 text-center">
+                  <h4 className="font-bold text-sm mb-1 uppercase tracking-wider">{step.title}</h4>
+                  <p className="text-[10px] text-muted font-bold tracking-widest uppercase">{step.desc}</p>
+                </div>
+                {i < 4 && (
+                  <div className="hidden md:block absolute top-8 left-[70%] w-full h-[1px] bg-white/5 z-0" />
+                )}
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section style={{ padding: "80px 0", borderTop: "1px solid var(--border)" }}>
-        <div className="container text-center">
-          <div className="glass-card" style={{ maxWidth: 620, margin: "0 auto", padding: "56px 48px" }}>
-            <div style={{ marginBottom: 16 }}>
-              <CheckCircle size={40} color="var(--purple-light)" style={{ margin: "0 auto" }} />
+      {/* CTA Section */}
+      <section className="py-40 relative">
+        <div className="container mx-auto px-6">
+          <motion.div 
+             initial={{ opacity: 0, scale: 0.95 }}
+             whileInView={{ opacity: 1, scale: 1 }}
+             viewport={{ once: true }}
+             className="glass-card max-w-4xl mx-auto p-16 text-center border-primary/20 relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-premium-gradient opacity-[0.03]" />
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-float">
+                <Brain size={32} className="text-primary-light" />
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">Ready for a Strategic Advantage?</h2>
+              <p className="text-muted text-lg max-w-xl mx-auto mb-12 font-medium">
+                The average ATS rejects 75% of resumes. Our AI ensures yours stays in the remaining 25% by optimizing for the exact match vectors recruiters need.
+              </p>
+              <Link href="/upload" className="btn-premium !py-4 !px-12 text-xl group">
+                Begin Analysis <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
-            <h2 style={{ marginBottom: 16 }}>Ready to Get Hired?</h2>
-            <p style={{ color: "var(--text-secondary)", marginBottom: 32, fontSize: 16 }}>
-              Join thousands who improved their resume with AI. It takes less than 60 seconds.
-            </p>
-            <Link href="/upload" className="btn-primary" style={{ fontSize: 16, padding: "14px 36px" }}>
-              Analyze Your Resume Free <ArrowRight size={18} />
-            </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: "1px solid var(--border)", padding: "24px 0", textAlign: "center" }}>
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-          © 2026 ResumeAI · Powered by Nebius AI, Kafka, ClickHouse & PostgreSQL
-        </p>
+      <footer className="py-12 border-t border-white/5">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
+           <div className="flex items-center gap-3 opacity-50">
+            <Brain size={20} className="text-white" />
+            <span className="font-bold text-sm uppercase tracking-widest">
+              Resume<span className="premium-gradient-text tracking-widest">AI</span>
+            </span>
+          </div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted/50 text-center">
+            © 2026 ResumAI Strategy Engine // BAAI-Vector Powered
+          </p>
+          <div className="flex items-center gap-6 opacity-40">
+            <Award size={16} />
+            <Globe size={16} />
+            <Shield size={16} />
+          </div>
+        </div>
       </footer>
     </div>
   );

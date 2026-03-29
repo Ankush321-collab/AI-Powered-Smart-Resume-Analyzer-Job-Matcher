@@ -1,8 +1,13 @@
 "use client";
 import { use, useEffect, useState } from "react";
-import { useQuery, useMutation, gql } from "@apollo/client";
+import { useQuery, gql } from "@apollo/client";
 import Link from "next/link";
-import { Brain, ArrowLeft, RefreshCw, TrendingUp, Target, Zap, BookOpen, CheckCircle, XCircle, BarChart2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Brain, ArrowLeft, TrendingUp, Target, Zap, 
+  CheckCircle, XCircle, BarChart2, Sparkles, 
+  ShieldCheck, Award, Layers
+} from "lucide-react";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -23,28 +28,63 @@ const GET_ANALYTICS = gql`
   }
 `;
 
-function ScoreRing({ value, size = 130 }: { value: number; size?: number }) {
-  const radius = 54;
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+};
+
+function ScoreRing({ value, size = 160 }: { value: number; size?: number }) {
+  const radius = 65;
   const circ = 2 * Math.PI * radius;
   const pct = Math.min(value, 100) / 100;
-  const color = value >= 75 ? "#14b8a6" : value >= 50 ? "#8b5cf6" : "#ef4444";
+  const color = value >= 80 ? "#14b8a6" : value >= 60 ? "#8b5cf6" : "#f43f5e";
 
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
         <circle
-          cx={size / 2} cy={size / 2} r={radius} fill="none"
-          stroke={color} strokeWidth="10"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="12"
+          className="text-white/5"
+        />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="12"
           strokeDasharray={circ}
-          strokeDashoffset={circ * (1 - pct)}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ * (1 - pct) }}
+          transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
           strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 1.2s ease" }}
+          className="drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]"
         />
       </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 26, fontWeight: 800, color }}>{Math.round(value)}%</span>
-        <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Match</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span 
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 1 }}
+          className="text-4xl font-black tracking-tighter"
+          style={{ color }}
+        >
+          {Math.round(value)}%
+        </motion.span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted mt-1">Match Score</span>
       </div>
     </div>
   );
@@ -72,39 +112,32 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
       setPollingInterval(0);
       return;
     }
-
     if (status === "COMPLETED" && !resume?.feedback) {
-      // Keep polling after analysis completes until feedback text is persisted.
       setPollingInterval(5000);
     }
   }, [status, resume?.feedback, stopPolling]);
 
   useEffect(() => {
-    // Safety stop to avoid endless polling loops if a service is stalled.
     const timer = setTimeout(() => {
       setPollingInterval(0);
       stopPolling();
     }, 12 * 60 * 1000);
-
     return () => clearTimeout(timer);
   }, [stopPolling]);
 
   const skillGap = topMatch?.skillGap ?? [];
   const presentSkills = resume?.skills ?? [];
-
-  // Prepare radar data (first 6 skill gap items)
   const radarData = skillGap.slice(0, 6).map((skill: string) => ({
     skill, hasSkill: presentSkills.includes(skill) ? 80 : 20,
   }));
-
   const analyticsOverview = analyticsData?.getAnalyticsOverview;
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
-        <div style={{ textAlign: "center" }}>
-          <div className="spinner" style={{ width: 48, height: 48, borderWidth: 4, margin: "0 auto 16px" }} />
-          <p style={{ color: "var(--text-secondary)" }}>Loading analysis...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="spinner mb-4 mx-auto w-12 h-12 border-4" />
+          <p className="text-muted text-sm font-medium animate-pulse">Initializing Neural Engine...</p>
         </div>
       </div>
     );
@@ -112,13 +145,21 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
 
   if (error) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
-        <div className="glass-card text-center" style={{ maxWidth: 400, padding: "40px" }}>
-          <XCircle size={48} color="#f87171" style={{ margin: "0 auto 16px" }} />
-          <h2 style={{ marginBottom: 8 }}>Failed to Load</h2>
-          <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>{error.message}</p>
-          <Link href="/upload" className="btn-primary">Try Again</Link>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card max-w-md w-full p-10 text-center border-red-500/20"
+        >
+          <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <XCircle size={32} className="text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Sync Error</h2>
+          <p className="text-muted mb-8 text-sm">{error.message}</p>
+          <Link href="/upload" className="btn-premium w-full justify-center">
+            Return to Upload
+          </Link>
+        </motion.div>
       </div>
     );
   }
@@ -126,233 +167,339 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
   const isProcessing = !["COMPLETED", "FAILED"].includes(status || "");
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }}>
+    <div className="min-h-screen bg-background selection:bg-primary/30">
       {/* Navbar */}
-      <nav className="navbar">
-        <div className="container flex items-center justify-between" style={{ padding: "18px 24px" }}>
-          <div className="flex items-center gap-4">
-            <Link href="/upload" className="btn-secondary" style={{ padding: "8px 16px", fontSize: 13 }}>
-              <ArrowLeft size={14} /> Back
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-xl">
+        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/upload" className="btn-premium-outline !py-2 !px-4 !text-xs group">
+              <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+              Back
             </Link>
-            <div className="flex items-center gap-2">
-              <div style={{ width: 32, height: 32, background: "var(--gradient-primary)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Brain size={16} color="#fff" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-premium-gradient rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse-glow">
+                <Brain size={20} className="text-white" />
               </div>
-              <span style={{ fontWeight: 700, fontSize: 16 }}>Resume<span className="text-gradient">AI</span></span>
+              <span className="font-black text-xl tracking-tight uppercase">
+                Resume<span className="premium-gradient-text tracking-widest">AI</span>
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`badge ${status === "COMPLETED" ? "badge-green" : status === "FAILED" ? "badge-red" : "badge-purple"}`}>
-              {status === "COMPLETED" ? <CheckCircle size={10} /> : null}
-              {status || "Loading..."}
-            </span>
+          <div className="flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={status}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <span className={`badge-premium ${status === 'COMPLETED' ? 'text-accent-light' : 'text-primary-light'}`}>
+                  {status === "COMPLETED" ? <CheckCircle size={10} /> : <Sparkles size={10} className="animate-spin" />}
+                  {status || "Initializing"}
+                </span>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </nav>
 
-      <div className="container" style={{ padding: "32px 24px" }}>
+      <motion.main 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="container mx-auto px-6 pt-32 pb-20"
+      >
         {/* Processing State */}
         {isProcessing && (
-          <div className="glass-card" style={{ marginBottom: 24, padding: "24px 32px", borderColor: "rgba(139,92,246,0.3)" }}>
-            <div className="flex items-center gap-4">
-              <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
+          <motion.div 
+            variants={itemVariants}
+            className="glass-card mb-8 p-8 border-primary/30 bg-primary/5 relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Brain size={120} />
+            </div>
+            <div className="flex items-center gap-6 relative z-10">
+              <div className="spinner !w-10 !h-10 border-4" />
               <div>
-                <h3 style={{ marginBottom: 4 }}>AI Analysis in Progress</h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-                  Parsing PDF → Generating embeddings → Extracting skills → Matching jobs → Generating feedback...
+                <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+                  Deep Analysis in Progress <Sparkles size={16} className="text-primary-light animate-pulse" />
+                </h3>
+                <p className="text-muted text-sm max-w-2xl">
+                  Our neural engine is currently parsing your document, extracting multi-dimensional skill vectors, and cross-referencing with 10k+ industry job profiles.
                 </p>
               </div>
             </div>
-            <div className="progress-bar" style={{ marginTop: 20 }}>
-              <div className="progress-fill" style={{ width: "60%", animation: "none", background: "var(--gradient-primary)" }} />
+            <div className="h-1.5 w-full bg-white/5 rounded-full mt-8 overflow-hidden">
+              <motion.div 
+                initial={{ x: "-100%" }}
+                animate={{ x: "0%" }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="h-full bg-premium-gradient w-1/3 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.5)]"
+              />
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Top Row: Score + Info */}
-        <div className="grid" style={{ gridTemplateColumns: topMatch ? "200px 1fr" : "1fr", gap: 24, marginBottom: 24 }}>
-          {topMatch && (
-            <div className="glass-card text-center" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-              <ScoreRing value={topMatch.matchPercentage} />
-              <div>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Confidence</p>
-                <p style={{ fontSize: 18, fontWeight: 700 }}>{Math.round(topMatch.confidence * 100)}%</p>
-              </div>
-            </div>
-          )}
-
-          {/* Resume Info */}
-          <div className="glass-card">
-            <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
-              <Target size={20} color="var(--purple-light)" />
-              <h2 style={{ fontSize: "1.25rem" }}>{resume?.fileName || "Resume Analysis"}</h2>
-            </div>
-
-            {/* Skill stats */}
-            <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-              {[
-                { label: "Skills Found", value: presentSkills.length, color: "var(--teal)" },
-                { label: "Skills Missing", value: skillGap.length, color: "#f87171" },
-                { label: "Match Score", value: topMatch ? `${Math.round(topMatch.score)}/100` : "—", color: "var(--purple-light)" },
-              ].map((s) => (
-                <div key={s.label} style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: 12, border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.value}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{s.label}</div>
+        <div className="grid lg:grid-cols-[380px_1fr] gap-8">
+          {/* Left Column: Score Card */}
+          <motion.div variants={itemVariants} className="space-y-8">
+            <div className="glass-card p-10 flex flex-col items-center justify-center text-center group hover:bg-white/[0.02] transition-colors border-white/5">
+              <ScoreRing value={topMatch?.matchPercentage || 0} />
+              <div className="mt-8 space-y-4 w-full">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-1">Confidence Vector</p>
+                  <p className="text-2xl font-black text-white">{Math.round((topMatch?.confidence || 0) * 100)}%</p>
                 </div>
-              ))}
-            </div>
-
-            {/* Progress bar for match */}
-            {topMatch && (
-              <div>
-                <div className="flex justify-between" style={{ marginBottom: 8, fontSize: 13, color: "var(--text-secondary)" }}>
-                  <span>Job Match</span>
-                  <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{Math.round(topMatch.matchPercentage)}%</span>
-                </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${topMatch.matchPercentage}%` }} />
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider px-2">
+                  <span className="text-muted">Status</span>
+                  <span className="text-accent-light">Verified</span>
                 </div>
               </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass-card p-6 border-white/5 hover:border-primary/30 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center mb-4">
+                  <CheckCircle size={16} className="text-accent-light" />
+                </div>
+                <p className="text-2xl font-black">{presentSkills.length}</p>
+                <p className="text-[10px] uppercase font-bold text-muted tracking-tighter">Skills Found</p>
+              </div>
+              <div className="glass-card p-6 border-white/5 hover:border-red-500/30 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center mb-4">
+                  <XCircle size={16} className="text-red-400" />
+                </div>
+                <p className="text-2xl font-black">{skillGap.length}</p>
+                <p className="text-[10px] uppercase font-bold text-muted tracking-tighter">Gap Detected</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Right Column: Main Content */}
+          <div className="space-y-8">
+            {/* Header / Filename */}
+            <motion.div variants={itemVariants} className="glass-card p-8 flex items-center justify-between border-white/5">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Layers size={24} className="text-primary-light" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">{resume?.fileName || "Analysis Report"}</h2>
+                  <p className="text-muted text-xs font-medium">ATS Strategy Optimized • AI-Generated Feedback</p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-2">
+                <ShieldCheck size={16} className="text-primary-light" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary-light">Secure Node</span>
+              </div>
+            </motion.div>
+
+            {/* AI Feedback Section */}
+            {resume?.feedback && (
+              <motion.div variants={itemVariants} className="glass-card p-8 border-primary/20 bg-primary/5 relative">
+                <div className="absolute -top-3 left-8">
+                  <span className="badge-premium !bg-primary !text-white flex items-center gap-2 shadow-lg shadow-primary/40 leading-none py-2">
+                    <Brain size={12} /> Nebius Intelligence
+                  </span>
+                </div>
+                <div className="mt-4 prose prose-invert max-w-none">
+                  <div className="text-muted leading-relaxed text-[15px] space-y-4 whitespace-pre-wrap">
+                    {resume.feedback}
+                  </div>
+                </div>
+                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-accent-light px-3 py-1.5 rounded-lg bg-accent/5 border border-accent/10">
+                    <Award size={14} /> Optimization Ready
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-muted tracking-widest">Model: LLaMA 3.1 70B</span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Pending Feedback */}
+            {!resume?.feedback && status === "COMPLETED" && (
+              <motion.div variants={itemVariants} className="glass-card p-12 text-center border-dashed border-white/10 bg-white/[0.01]">
+                <div className="spinner !w-12 !h-12 border-4 mb-6 mx-auto opacity-50" />
+                <h3 className="text-xl font-bold mb-2">Generating Strategic Insights</h3>
+                <p className="text-muted text-sm max-w-sm mx-auto font-medium">
+                  We're finalizing your personalized career path based on the detected skill matrix. This usually takes 5-10 seconds.
+                </p>
+              </motion.div>
+            )}
+
+            {/* Skills Radar and Learn Section */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {radarData.length > 0 && (
+                <motion.div variants={itemVariants} className="glass-card p-8 border-white/5">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Target size={18} className="text-primary-light" /> Skill Radar
+                  </h3>
+                  <div className="h-[240px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                        <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                        <PolarAngleAxis 
+                          dataKey="skill" 
+                          tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600 }} 
+                        />
+                        <Radar
+                          name="Competency"
+                          dataKey="hasSkill"
+                          stroke="#8b5cf6"
+                          fill="#8b5cf6"
+                          fillOpacity={0.15}
+                          strokeWidth={2}
+                          animationDuration={1500}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </motion.div>
+              )}
+
+              {analyticsOverview?.topMissingSkills?.length > 0 && (
+                <motion.div variants={itemVariants} className="glass-card p-8 border-white/5">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <TrendingUp size={18} className="text-secondary-light" /> Top Market Demands
+                  </h3>
+                  <div className="h-[240px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analyticsOverview.topMissingSkills.slice(0, 6)} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
+                        <XAxis type="number" hide />
+                        <YAxis 
+                          dataKey="skill" 
+                          type="category" 
+                          width={90} 
+                          tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                          contentStyle={{ 
+                            background: "#16161f", 
+                            border: "1px solid rgba(255,255,255,0.1)", 
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            fontWeight: "bold"
+                          }}
+                        />
+                        <Bar 
+                          dataKey="count" 
+                          fill="url(#premiumBarGrad)" 
+                          radius={[0, 4, 4, 0]} 
+                          barSize={12}
+                        />
+                        <defs>
+                          <linearGradient id="premiumBarGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#8b5cf6" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Skills Detail Grid */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Present Skills */}
+              <motion.div variants={itemVariants} className="glass-card p-8 border-white/5">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <CheckCircle size={18} className="text-accent-light" /> Verified Assets
+                  </h3>
+                  <span className="text-[10px] font-bold text-muted bg-white/5 px-2 py-1 rounded">
+                    {presentSkills.length} SKILLS
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {presentSkills.map((skill: string, idx: number) => (
+                    <motion.span 
+                      key={skill} 
+                      whileHover={{ scale: 1.05 }}
+                      className="skill-chip skill-chip-present"
+                    >
+                      {skill}
+                    </motion.span>
+                  ))}
+                  {presentSkills.length === 0 && (
+                    <div className="w-full py-8 text-center text-muted text-xs italic opacity-50">
+                      Discovery in progress...
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Missing Skills */}
+              <motion.div variants={itemVariants} className="glass-card p-8 border-white/5">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <XCircle size={18} className="text-red-400" /> Improvement Vector
+                  </h3>
+                  <span className="text-[10px] font-bold text-muted bg-white/5 px-2 py-1 rounded">
+                    {skillGap.length} MISSING
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {skillGap.map((skill: string) => (
+                    <motion.span 
+                      key={skill} 
+                      whileHover={{ scale: 1.05 }}
+                      className="skill-chip skill-chip-missing"
+                    >
+                      {skill}
+                    </motion.span>
+                  ))}
+                  {skillGap.length === 0 && status === "COMPLETED" && (
+                    <div className="w-full py-10 flex flex-col items-center justify-center text-accent-light gap-2">
+                      <Sparkles size={24} />
+                      <p className="text-xs font-bold uppercase tracking-widest">Perfect Match Synergy</p>
+                    </div>
+                  )}
+                   {skillGap.length === 0 && status !== "COMPLETED" && (
+                    <div className="w-full py-8 text-center text-muted text-xs italic opacity-50">
+                      Calculating gaps...
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Global Context Summary */}
+            {analyticsOverview && (
+              <motion.div variants={itemVariants} className="glass-card p-1 pb-1 border-white/5 overflow-hidden">
+                <div className="bg-white/[0.01] p-8 rounded-[22px]">
+                   <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                    <BarChart2 size={18} className="text-primary-light" /> System Intelligence Overview
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {[
+                      { label: "Total Data Points", value: analyticsOverview.totalResumes, icon: Layers, color: "text-primary-light" },
+                      { label: "Aggregate Match", value: `${Math.round(analyticsOverview.avgScore)}%`, icon: Target, color: "text-accent-light" },
+                      { label: "Market Volatility", value: "Low", icon: Zap, color: "text-secondary-light" },
+                    ].map((s) => (
+                      <div key={s.label} className="p-6 rounded-2xl bg-white/5 border border-white/5 group hover:border-white/10 transition-all">
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center ${s.color}`}>
+                            <s.icon size={16} />
+                          </div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{s.label}</p>
+                        </div>
+                        <p className={`text-3xl font-black ${s.color}`}>{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
             )}
           </div>
         </div>
-
-        {/* Skills */}
-        {(presentSkills.length > 0 || skillGap.length > 0) && (
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
-            {/* Present Skills */}
-            <div className="glass-card">
-              <h3 className="flex items-center gap-2" style={{ marginBottom: 16 }}>
-                <CheckCircle size={16} color="#5eead4" /> Your Skills ({presentSkills.length})
-              </h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {presentSkills.map((skill: string) => (
-                  <span key={skill} className="skill-chip present">{skill}</span>
-                ))}
-                {presentSkills.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Processing...</p>}
-              </div>
-            </div>
-
-            {/* Missing Skills */}
-            <div className="glass-card">
-              <h3 className="flex items-center gap-2" style={{ marginBottom: 16 }}>
-                <XCircle size={16} color="#fca5a5" /> Missing Skills ({skillGap.length})
-              </h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {skillGap.map((skill: string) => (
-                  <span key={skill} className="skill-chip missing">{skill}</span>
-                ))}
-                {skillGap.length === 0 && status === "COMPLETED" && (
-                  <p style={{ color: "#5eead4", fontSize: 13 }}>🎉 No skill gaps detected!</p>
-                )}
-                {skillGap.length === 0 && status !== "COMPLETED" && (
-                  <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Processing...</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Charts Row */}
-        {(radarData.length > 0 || analyticsOverview?.topMissingSkills?.length > 0) && (
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
-            {/* Radar Chart */}
-            {radarData.length > 0 && (
-              <div className="glass-card">
-                <h3 className="flex items-center gap-2" style={{ marginBottom: 20 }}>
-                  <BarChart2 size={16} color="var(--purple-light)" /> Skill Radar
-                </h3>
-                <ResponsiveContainer width="100%" height={220}>
-                  <RadarChart cx="50%" cy="50%" outerRadius={80} data={radarData}>
-                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                    <PolarAngleAxis dataKey="skill" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                    <Radar name="Skills" dataKey="hasSkill" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.25} strokeWidth={2} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Top Missing Skills Bar Chart */}
-            {analyticsOverview?.topMissingSkills?.length > 0 && (
-              <div className="glass-card">
-                <h3 className="flex items-center gap-2" style={{ marginBottom: 20 }}>
-                  <TrendingUp size={16} color="var(--blue-light)" /> Top Skills to Learn
-                </h3>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={analyticsOverview.topMissingSkills.slice(0, 7)} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis type="number" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                    <YAxis dataKey="skill" type="category" tick={{ fill: "#94a3b8", fontSize: 11 }} width={80} />
-                    <Tooltip
-                      contentStyle={{ background: "#1c1c28", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f8fafc" }}
-                    />
-                    <Bar dataKey="count" fill="url(#barGrad)" radius={[0, 6, 6, 0]} />
-                    <defs>
-                      <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#8b5cf6" />
-                        <stop offset="100%" stopColor="#3b82f6" />
-                      </linearGradient>
-                    </defs>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* AI Feedback */}
-        {resume?.feedback && (
-          <div className="glass-card" style={{ borderColor: "rgba(139,92,246,0.25)" }}>
-            <h3 className="flex items-center gap-2" style={{ marginBottom: 20 }}>
-              <Zap size={16} color="var(--purple-light)" />
-              <span>AI Resume Feedback</span>
-              <span className="badge badge-purple" style={{ marginLeft: 8 }}>Nebius LLaMA 3.1 70B</span>
-            </h3>
-            <div style={{
-              background: "rgba(139,92,246,0.04)", border: "1px solid rgba(139,92,246,0.15)",
-              borderRadius: 12, padding: 20,
-              color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.8,
-              whiteSpace: "pre-wrap"
-            }}>
-              {resume.feedback}
-            </div>
-          </div>
-        )}
-
-        {/* No feedback yet */}
-        {!resume?.feedback && status === "COMPLETED" && (
-          <div className="glass-card text-center" style={{ padding: "40px" }}>
-            <div
-              className="spinner"
-              style={{ width: 40, height: 40, borderWidth: 3, margin: "0 auto 12px" }}
-            />
-            <p style={{ color: "var(--text-secondary)" }}>
-              AI feedback is being generated{isFeedbackPending ? "..." : "."}
-            </p>
-          </div>
-        )}
-
-        {/* Analytics Summary Card */}
-        {analyticsOverview && (
-          <div className="glass-card" style={{ marginTop: 24 }}>
-            <h3 className="flex items-center gap-2" style={{ marginBottom: 16 }}>
-              <BarChart2 size={16} color="var(--teal)" /> Your Analytics Overview
-            </h3>
-            <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-              {[
-                { label: "Total Resumes", value: analyticsOverview.totalResumes },
-                { label: "Avg Score", value: `${Math.round(analyticsOverview.avgScore)}/100` },
-                { label: "Skills to Learn", value: analyticsOverview.topMissingSkills.length },
-              ].map((s) => (
-                <div key={s.label} style={{ padding: 16, background: "rgba(255,255,255,0.03)", borderRadius: 12, border: "1px solid var(--border)", textAlign: "center" }}>
-                  <div style={{ fontSize: 22, fontWeight: 800 }} className="text-gradient">{s.value}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      </motion.main>
     </div>
   );
 }
