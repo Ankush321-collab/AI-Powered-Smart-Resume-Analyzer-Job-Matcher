@@ -128,6 +128,7 @@
   50% { transform: translateY(-20px) scale(1.05); }
 }
 
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -141,6 +142,41 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.skill-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+}
+
+.skill-chip-present {
+  background: rgba(20, 184, 166, 0.08);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.15);
+}
+.skill-chip-present:hover {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: rgba(20, 184, 166, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.1);
+}
+
+.skill-chip-missing {
+  background: rgba(244, 63, 92, 0.08);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 92, 0.15);
+}
+.skill-chip-missing:hover {
+  background: rgba(244, 63, 92, 0.15);
+  border-color: rgba(244, 63, 92, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 63, 92, 0.1);
 }
 
 

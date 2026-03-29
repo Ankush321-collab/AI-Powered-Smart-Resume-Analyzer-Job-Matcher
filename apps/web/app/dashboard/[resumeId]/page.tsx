@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useQuery, gql } from "@apollo/client";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -85,6 +85,43 @@ function ScoreRing({ value, size = 160 }: { value: number; size?: number }) {
           {Math.round(value)}%
         </motion.span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted mt-1">Match Score</span>
+      </div>
+    </div>
+  );
+}
+
+function TypewriterText({ text }: { text: string }) {
+  const [displayedText, setDisplayedText] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText(""); // Reset text on new input
+    if (!text) return;
+    
+    const interval = setInterval(() => {
+      setDisplayedText((prev) => prev + text[index]);
+      index++;
+      if (index === text.length) clearInterval(interval);
+    }, 20);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [displayedText]);
+
+  return (
+    <div ref={containerRef} className="max-h-[360px] overflow-y-auto pr-4 scroll-smooth custom-scrollbar">
+      <div className="text-muted leading-relaxed text-[15px] space-y-4 whitespace-pre-wrap font-medium">
+        {displayedText}
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ repeat: Infinity, duration: 0.8 }}
+          className="inline-block w-2 h-4 bg-primary ml-1 translate-y-0.8"
+        />
       </div>
     </div>
   );
@@ -297,22 +334,37 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
 
             {/* AI Feedback Section */}
             {resume?.feedback && (
-              <motion.div variants={itemVariants} className="glass-card p-8 border-primary/20 bg-primary/5 relative">
-                <div className="absolute -top-3 left-8">
-                  <span className="badge-premium !bg-primary !text-white flex items-center gap-2 shadow-lg shadow-primary/40 leading-none py-2">
-                    <Brain size={12} /> Nebius Intelligence
+              <motion.div 
+                variants={itemVariants} 
+                className="glass-card p-10 border-primary/20 bg-primary/[0.02] relative overflow-hidden group shadow-2xl shadow-primary/5"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-pulse" />
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-[100px] group-hover:bg-primary/10 transition-colors" />
+                
+                <div className="absolute -top-3 left-10">
+                  <span className="badge-premium !bg-primary !text-white flex items-center gap-2.5 shadow-xl shadow-primary/20 scale-110 py-2.5 px-4 rounded-full font-black tracking-widest border-0 leading-none">
+                    <Brain size={14} className="animate-pulse" /> NEBIUS INTELLIGENCE
                   </span>
                 </div>
-                <div className="mt-4 prose prose-invert max-w-none">
-                  <div className="text-muted leading-relaxed text-[15px] space-y-4 whitespace-pre-wrap">
-                    {resume.feedback}
-                  </div>
+
+                <div className="mt-8 relative">
+                  <TypewriterText text={resume.feedback} />
                 </div>
-                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-accent-light px-3 py-1.5 rounded-lg bg-accent/5 border border-accent/10">
-                    <Award size={14} /> Optimization Ready
+
+                <div className="mt-10 pt-8 border-t border-white/5 flex flex-wrap gap-6 items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-accent-light px-4 py-2 rounded-xl bg-accent/5 border border-accent/10 shadow-sm shadow-accent/10 uppercase tracking-widest">
+                      <Award size={14} /> Optimization Complete
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-black text-primary-light px-4 py-2 rounded-xl bg-primary/5 border border-primary/10 uppercase tracking-widest">
+                      <Zap size={14} /> High Accuracy Match
+                    </div>
                   </div>
-                  <span className="text-[10px] uppercase font-bold text-muted tracking-widest">Model: LLaMA 3.1 70B</span>
+                  <div className="flex items-center gap-4 text-[10px] uppercase font-black text-muted tracking-widest">
+                    <span>Model: LLaMA 3.1 70B</span>
+                    <span className="w-1 h-1 bg-muted/40 rounded-full" />
+                    <span>Inference: 45ms</span>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -409,27 +461,28 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
             <div className="grid md:grid-cols-2 gap-8">
               {/* Present Skills */}
               <motion.div variants={itemVariants} className="glass-card p-8 border-white/5">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <CheckCircle size={18} className="text-accent-light" /> Verified Assets
-                  </h3>
-                  <span className="text-[10px] font-bold text-muted bg-white/5 px-2 py-1 rounded">
-                    {presentSkills.length} SKILLS
-                  </span>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                      <CheckCircle size={20} className="text-accent-light" />
+                    </div>
+                    <h3 className="text-xl font-bold">Your Skills ({presentSkills.length})</h3>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {presentSkills.map((skill: string, idx: number) => (
+                <div className="flex flex-wrap gap-3">
+                  {presentSkills.map((skill: string) => (
                     <motion.span 
                       key={skill} 
                       whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       className="skill-chip skill-chip-present"
                     >
                       {skill}
                     </motion.span>
                   ))}
                   {presentSkills.length === 0 && (
-                    <div className="w-full py-8 text-center text-muted text-xs italic opacity-50">
-                      Discovery in progress...
+                    <div className="w-full py-12 text-center text-muted font-medium italic opacity-40">
+                      Scanning neural skill vectors...
                     </div>
                   )}
                 </div>
@@ -437,33 +490,34 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
 
               {/* Missing Skills */}
               <motion.div variants={itemVariants} className="glass-card p-8 border-white/5">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <XCircle size={18} className="text-red-400" /> Improvement Vector
-                  </h3>
-                  <span className="text-[10px] font-bold text-muted bg-white/5 px-2 py-1 rounded">
-                    {skillGap.length} MISSING
-                  </span>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                      <XCircle size={20} className="text-red-400" />
+                    </div>
+                    <h3 className="text-xl font-bold">Missing Skills ({skillGap.length})</h3>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {skillGap.map((skill: string) => (
                     <motion.span 
                       key={skill} 
                       whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       className="skill-chip skill-chip-missing"
                     >
                       {skill}
                     </motion.span>
                   ))}
                   {skillGap.length === 0 && status === "COMPLETED" && (
-                    <div className="w-full py-10 flex flex-col items-center justify-center text-accent-light gap-2">
-                      <Sparkles size={24} />
-                      <p className="text-xs font-bold uppercase tracking-widest">Perfect Match Synergy</p>
+                    <div className="w-full py-12 flex flex-col items-center justify-center text-accent-light gap-3">
+                      <Sparkles size={32} />
+                      <p className="text-sm font-bold uppercase tracking-[0.2em]">Perfect Neural Sync</p>
                     </div>
                   )}
-                   {skillGap.length === 0 && status !== "COMPLETED" && (
-                    <div className="w-full py-8 text-center text-muted text-xs italic opacity-50">
-                      Calculating gaps...
+                  {skillGap.length === 0 && status !== "COMPLETED" && (
+                    <div className="w-full py-12 text-center text-muted font-medium italic opacity-40">
+                      Calculating potential gaps...
                     </div>
                   )}
                 </div>
