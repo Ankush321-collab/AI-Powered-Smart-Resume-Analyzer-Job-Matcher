@@ -2,6 +2,10 @@ FROM node:18-bookworm-slim AS build
 
 WORKDIR /app
 
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
 COPY package*.json turbo.json ./
 COPY apps ./apps
 COPY services ./services
@@ -19,6 +23,10 @@ FROM node:18-bookworm-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
+
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
