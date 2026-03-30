@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import http from "http";
 import path from "path";
 import axios from "axios";
 import Redis from "ioredis";
@@ -14,6 +15,25 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
 const HTTP_TIMEOUT_MS = Number(process.env.HTTP_TIMEOUT_MS || 20000);
+
+function startHealthServer(serviceName: string): void {
+  const port = Number(process.env.PORT || 0);
+  if (!port) return;
+
+  const server = http.createServer((req, res) => {
+    if (req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, service: serviceName }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("ok");
+  });
+
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`[${serviceName}] Health server listening on port ${port}`);
+  });
+}
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const cacheKey = `embed:${Buffer.from(text.slice(0, 200)).toString("base64")}`;
@@ -69,6 +89,7 @@ async function embedResume(payload: ResumeParsedEvent): Promise<void> {
 
 async function main() {
   console.log("[Embedder Service] Starting...");
+  startHealthServer("Embedder Service");
   await createConsumer(
     `${process.env.KAFKA_GROUP_ID_PREFIX}embedder`,
     TOPICS.RESUME_PARSED,
