@@ -1,4 +1,4 @@
-FROM node:18-alpine AS build
+FROM node:18-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN npm run build --workspace @resume-analyser/db
 RUN npm run build --workspace @resume-analyser/embedder
 RUN npm prune --omit=dev
 
-FROM node:18-alpine
+FROM node:18-bookworm-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
