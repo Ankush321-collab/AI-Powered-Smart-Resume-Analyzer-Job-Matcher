@@ -17,6 +17,7 @@ FROM node:18-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
+COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/services/skill-extractor ./services/skill-extractor
