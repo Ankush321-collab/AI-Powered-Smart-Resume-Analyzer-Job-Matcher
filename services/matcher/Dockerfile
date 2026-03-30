@@ -9,6 +9,9 @@ COPY packages ./packages
 
 RUN npm install
 RUN npm --workspace @resume-analyser/db run generate
+RUN npm run build --workspace @resume-analyser/types
+RUN npm run build --workspace @resume-analyser/kafka
+RUN npm run build --workspace @resume-analyser/db
 RUN npm run build --workspace @resume-analyser/matcher
 RUN npm prune --omit=dev
 
