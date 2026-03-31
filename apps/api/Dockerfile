@@ -17,6 +17,7 @@ RUN npm run build --workspace @resume-analyser/types
 RUN npm run build --workspace @resume-analyser/kafka
 RUN npm run build --workspace @resume-analyser/db
 RUN npm run build --workspace @resume-analyser/api
+RUN cp /app/apps/api/schema.graphql /app/apps/api/dist/schema.graphql
 RUN npm prune --omit=dev
 
 FROM node:18-bookworm-slim
