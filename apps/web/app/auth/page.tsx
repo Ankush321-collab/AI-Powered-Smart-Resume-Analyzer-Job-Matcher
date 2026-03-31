@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, gql } from "@apollo/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Brain, ArrowRight, Lock, Mail, User } from "lucide-react";
 import { motion } from "framer-motion";
@@ -26,9 +26,7 @@ const SIGN_UP = gql`
 
 export default function AuthPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const mode = searchParams.get("mode");
-  const [isLogin, setIsLogin] = useState(mode !== "signup");
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -37,6 +35,13 @@ export default function AuthPage() {
 
   const [signIn] = useMutation(SIGN_IN);
   const [signUp] = useMutation(SIGN_UP);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    setIsLogin(mode !== "signup");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,8 +99,8 @@ export default function AuthPage() {
           className="glass-card group"
           style={{ width: "100%", maxWidth: 440, padding: 44, position: "relative" }}
         >
-          <div className="absolute inset-0 bg-premium-gradient opacity-0 group-hover:opacity-15 transition-opacity" />
-          <div className="absolute -top-24 right-[-60px] w-56 h-56 rounded-full bg-primary/20 blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-premium-gradient opacity-0 group-hover:opacity-15 transition-opacity" style={{ pointerEvents: "none" }} />
+          <div className="absolute -top-24 right-[-60px] w-56 h-56 rounded-full bg-primary/20 blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ pointerEvents: "none" }} />
           <div className="text-center" style={{ marginBottom: 32, position: "relative" }}>
             <h2 style={{ fontSize: 24, marginBottom: 8 }}>{isLogin ? "Welcome Back" : "Create Account"}</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
