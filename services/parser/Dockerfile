@@ -10,6 +10,7 @@ COPY package*.json turbo.json ./
 COPY apps ./apps
 COPY services ./services
 COPY packages ./packages
+COPY certs/postgresql.pem /app/certs/postgresql.pem
 
 RUN npm install
 RUN npm --workspace @resume-analyser/db run generate
@@ -32,5 +33,6 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/services/parser ./services/parser
+COPY --from=build /app/certs/postgresql.pem /app/certs/postgresql.pem
 
 CMD ["npm", "run", "start", "--workspace", "@resume-analyser/parser"]
