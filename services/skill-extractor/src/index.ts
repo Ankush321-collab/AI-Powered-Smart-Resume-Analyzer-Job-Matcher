@@ -86,7 +86,11 @@ async function extractAndStoreSkills(payload: EmbeddingsGeneratedEvent): Promise
 
   try {
     const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
-    if (!resume?.parsedText) throw new Error("No parsed text found");
+    if (!resume) {
+      console.warn(`[SkillExtractor] Resume ${resumeId} not found. Skipping stale event.`);
+      return;
+    }
+    if (!resume.parsedText) throw new Error("No parsed text found");
 
     const skillNames = extractSkills(resume.parsedText);
 
@@ -110,7 +114,9 @@ async function extractAndStoreSkills(payload: EmbeddingsGeneratedEvent): Promise
     console.log(`[SkillExtractor] ✅ Found ${skillNames.length} skills for ${resumeId}`);
   } catch (err) {
     console.error(`[SkillExtractor] ❌ Error:`, err);
-    await prisma.resume.update({ where: { id: resumeId }, data: { status: "FAILED" } });
+    await prisma.resume
+      .update({ where: { id: resumeId }, data: { status: "FAILED" } })
+      .catch(() => undefined);
   }
 }
 

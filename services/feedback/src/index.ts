@@ -126,6 +126,11 @@ async function processFeedback(payload: MatchCompletedEvent): Promise<void> {
       prisma.job.findUnique({ where: { id: jobId } }),
     ]);
 
+    if (!resume) {
+      console.warn(`[Feedback] Resume ${resumeId} not found. Skipping stale event.`);
+      return;
+    }
+
     if (resume?.feedback && resume.feedback.trim()) {
       await redis.setex(resumeCacheKey, 43200, resume.feedback);
       await redis.setex(cacheKey, 43200, resume.feedback);

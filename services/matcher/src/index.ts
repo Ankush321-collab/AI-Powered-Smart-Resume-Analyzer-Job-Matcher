@@ -130,7 +130,11 @@ async function matchResumes(payload: SkillExtractedEvent): Promise<void> {
 
   try {
     const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
-    if (!resume?.parsedText) throw new Error("No parsedText for resume");
+    if (!resume) {
+      console.warn(`[Matcher] Resume ${resumeId} not found. Skipping stale event.`);
+      return;
+    }
+    if (!resume.parsedText) throw new Error("No parsedText for resume");
 
     const maxJobs = Number(process.env.MATCHER_MAX_JOBS || "0");
     const jobs = targetJobId
@@ -201,7 +205,9 @@ async function matchResumes(payload: SkillExtractedEvent): Promise<void> {
     console.log(`[Matcher] ✅ Matched resume ${resumeId} against ${jobs.length} jobs`);
   } catch (err) {
     console.error(`[Matcher] ❌ Error:`, err);
-    await prisma.resume.update({ where: { id: resumeId }, data: { status: "FAILED" } });
+    await prisma.resume
+      .update({ where: { id: resumeId }, data: { status: "FAILED" } })
+      .catch(() => undefined);
   }
 }
 

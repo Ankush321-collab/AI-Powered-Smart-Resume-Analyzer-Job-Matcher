@@ -69,6 +69,12 @@ async function embedResume(payload: ResumeParsedEvent): Promise<void> {
   console.log(`[Embedder] Generating embedding for resume ${resumeId}`);
 
   try {
+    const existing = await prisma.resume.findUnique({ where: { id: resumeId } });
+    if (!existing) {
+      console.warn(`[Embedder] Resume ${resumeId} not found. Skipping stale event.`);
+      return;
+    }
+
     await prisma.resume.update({ where: { id: resumeId }, data: { status: "EMBEDDING" } });
 
     const resumeVector = await generateEmbedding(parsedText);
@@ -83,7 +89,9 @@ async function embedResume(payload: ResumeParsedEvent): Promise<void> {
     console.log(`[Embedder] ✅ Embedding for resume ${resumeId} stored`);
   } catch (err) {
     console.error(`[Embedder] ❌ Error embedding ${resumeId}:`, err);
-    await prisma.resume.update({ where: { id: resumeId }, data: { status: "FAILED" } });
+    await prisma.resume
+      .update({ where: { id: resumeId }, data: { status: "FAILED" } })
+      .catch(() => undefined);
   }
 }
 
