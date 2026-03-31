@@ -17,6 +17,9 @@ const typeDefs = readFileSync(join(__dirname, "schema.graphql"), "utf-8");
 async function main() {
   const app = express();
 
+  // Render and other proxies set X-Forwarded-For; enable trust proxy for rate limiting.
+  app.set("trust proxy", 1);
+
   app.use(
     cors({
       origin: (process.env.CORS_ORIGINS || "https://ai-powered-smart-resume-analyzer-job-matcher-7foludgje.vercel.app/")

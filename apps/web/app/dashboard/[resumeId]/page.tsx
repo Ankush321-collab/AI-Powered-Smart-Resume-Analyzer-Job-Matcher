@@ -130,6 +130,8 @@ function TypewriterText({ text }: { text: string }) {
 export default function DashboardPage({ params }: { params: Promise<{ resumeId: string }> }) {
   const { resumeId } = use(params);
   const [pollingInterval, setPollingInterval] = useState(12000);
+  const [statusSince, setStatusSince] = useState<number>(Date.now());
+  const [lastStatus, setLastStatus] = useState<string | null>(null);
 
   const { data, loading, error, stopPolling } = useQuery(GET_RESUME, {
     variables: { resumeId },
@@ -142,6 +144,9 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
   const topMatch = resume?.matchResults?.[0];
   const status = resume?.status;
   const isFeedbackPending = status === "COMPLETED" && !resume?.feedback;
+  const isProcessing = !["COMPLETED", "FAILED"].includes(status || "");
+  const stalledMs = Date.now() - statusSince;
+  const isStalled = isProcessing && stalledMs > 5 * 60 * 1000;
 
   useEffect(() => {
     if (status === "FAILED" || (status === "COMPLETED" && !!resume?.feedback)) {
@@ -153,6 +158,14 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
       setPollingInterval(5000);
     }
   }, [status, resume?.feedback, stopPolling]);
+
+  useEffect(() => {
+    if (!status) return;
+    if (status !== lastStatus) {
+      setLastStatus(status);
+      setStatusSince(Date.now());
+    }
+  }, [status, lastStatus]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -201,8 +214,6 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
     );
   }
 
-  const isProcessing = !["COMPLETED", "FAILED"].includes(status || "");
-
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30">
       {/* Navbar */}
@@ -236,6 +247,11 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
                 </span>
               </motion.div>
             </AnimatePresence>
+            {isStalled && (
+              <span className="badge-premium !text-red-400 border border-red-500/30 bg-red-500/10">
+                <XCircle size={10} /> Delayed
+              </span>
+            )}
           </div>
         </div>
       </nav>
@@ -274,6 +290,12 @@ export default function DashboardPage({ params }: { params: Promise<{ resumeId: 
                 className="h-full bg-premium-gradient w-1/3 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.5)]"
               />
             </div>
+            {isStalled && (
+              <div className="mt-6 text-sm text-red-300/90 bg-red-500/5 border border-red-500/20 rounded-2xl p-4">
+                Processing is taking longer than expected. This usually means a worker service is not running or Kafka is
+                rebalancing. Please wait a moment, or retry later.
+              </div>
+            )}
           </motion.div>
         )}
 
