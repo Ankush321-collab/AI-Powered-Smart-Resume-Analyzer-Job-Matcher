@@ -35,6 +35,12 @@ async function parseResume(payload: ResumeUploadedEvent): Promise<void> {
   console.log(`[Parser] Processing resume ${resumeId}`);
 
   try {
+    const existing = await prisma.resume.findUnique({ where: { id: resumeId } });
+    if (!existing) {
+      console.warn(`[Parser] Resume ${resumeId} not found. Skipping stale event.`);
+      return;
+    }
+
     await prisma.resume.update({
       where: { id: resumeId },
       data: { status: "PARSING" },
@@ -73,7 +79,9 @@ async function parseResume(payload: ResumeUploadedEvent): Promise<void> {
     console.log(`[Parser] ✅ Resume ${resumeId} parsed successfully`);
   } catch (err) {
     console.error(`[Parser] ❌ Error parsing ${resumeId}:`, err);
-    await prisma.resume.update({ where: { id: resumeId }, data: { status: "FAILED" } });
+    await prisma.resume
+      .update({ where: { id: resumeId }, data: { status: "FAILED" } })
+      .catch(() => undefined);
   }
 }
 
