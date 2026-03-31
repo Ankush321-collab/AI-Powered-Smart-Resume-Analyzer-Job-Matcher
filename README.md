@@ -2,7 +2,7 @@
 
 AI-powered resume analysis platform built as a TypeScript monorepo.
 
-System Design
+System Design of project
 ![alt text](image-1.png)
 
 This project lets a user:
