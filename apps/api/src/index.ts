@@ -19,7 +19,7 @@ async function main() {
 
   app.use(
     cors({
-      origin: (process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:3001")
+      origin: (process.env.CORS_ORIGINS || "https://ai-powered-smart-resume-analyzer-job-matcher-7foludgje.vercel.app/")
         .split(",")
         .map((origin) => origin.trim())
         .filter(Boolean),
@@ -62,6 +62,9 @@ async function main() {
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+  app.get('/', (_req, res) => {
+    res.send('API Gateway is running. Use /graphql for GraphQL endpoint.');
   });
 
   const PORT = process.env.API_PORT || 4000;
