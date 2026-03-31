@@ -73,6 +73,7 @@ export default function LandingPage() {
             <Link href="#pipeline" className="hover:text-white transition-colors">Pipeline</Link>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/auth?mode=signup" className="btn-premium-outline !py-2 !px-5 !text-xs">Sign Up</Link>
             <Link href="/auth" className="btn-premium-outline !py-2 !px-5 !text-xs">Sign In</Link>
             <Link href="/upload" className="btn-premium !py-2 !px-5 !text-xs group">
               Get Started <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />

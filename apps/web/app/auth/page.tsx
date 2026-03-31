@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useMutation, gql } from "@apollo/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Brain, ArrowRight, Lock, Mail, User } from "lucide-react";
 import { motion } from "framer-motion";
@@ -26,7 +26,9 @@ const SIGN_UP = gql`
 
 export default function AuthPage() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+  const [isLogin, setIsLogin] = useState(mode !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
